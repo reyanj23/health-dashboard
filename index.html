@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Monitoring Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom animation for a "live" pulse */
+        @keyframes pulse-live {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.7;
+            }
+        }
+        .animate-pulse-live {
+            animation: pulse-live 1.5s ease-in-out infinite;
+        }
+        
+        /* Ensure canvas is crisp on all displays */
+        canvas {
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+    <!-- Main Container -->
+    <div class="container mx-auto max-w-7xl p-4 md:p-8">
+
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-blue-700">Health Monitoring Dashboard</h1>
+            <div class="mt-4 md:mt-0">
+                <label for="patient-selector" class="mr-2 font-medium">Monitoring Patient:</label>
+                <select id="patient-selector" class="p-2 rounded-lg border bg-white shadow-sm">
+                    <option value="p1">Patient A (John Doe)</option>
+                    <option value="p2">Patient B (Jane Smith)</option>
+                    <option value="p3">Patient C (Robert Brown)</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- Main Grid for Vitals -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <!-- Card: Heart Rate (PPG/ECG) -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-xl font-semibold text-gray-700">Heart Rate</h2>
+                        <!-- Heart Icon -->
+                        <svg class="w-8 h-8 text-red-500 animate-pulse-live" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <p class="text-6xl font-bold text-gray-900" id="heart-rate-value">72</p>
+                    <p class="font-medium text-gray-500">BPM</p>
+                </div>
+                <div class="mt-4">
+                    <p class="text-lg font-medium" id="heart-rate-status">
+                        <span class="text-green-600">Status: Normal</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card: Blood Glucose -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-xl font-semibold text-gray-700">Blood Glucose</h2>
+                        <!-- Blood Drop Icon -->
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14c-4.418 0-8-3.582-8-8 0-1.047.208-2.045.586-2.949a1 1 0 011.828.77A6 6 0 1012 14z"></path></svg>
+                    </div>
+                    <p class="text-6xl font-bold text-gray-900" id="glucose-value">95</p>
+                    <p class="font-medium text-gray-500">mg/dL</p>
+                </div>
+                <div class="mt-4">
+                    <p class="text-lg font-medium" id="glucose-status">
+                        <span class="text-green-600">Status: Normal</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card: Blood Pressure -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-700 mb-2">Blood Pressure</h2>
+                    <p class="text-6xl font-bold text-gray-900" id="bp-value">120/80</p>
+                    <p class="font-medium text-gray-500">mmHg</p>
+                </div>
+                <div class="mt-4">
+                    <p class="text-lg font-medium" id="bp-status">
+                        <span class="text-green-600">Status: Normal</span>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Card: Portable ECG Monitor -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg md:col-span-2 lg:col-span-3 overflow-hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Live ECG (Cardiac Cycle)</h2>
+                <canvas id="ecg-canvas" class="w-full h-48"></canvas>
+            </div>
+
+            <!-- Card: Other Vitals (SpO2) -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Oxygen Saturation (SpO2)</h2>
+                <p class="text-6xl font-bold text-gray-900" id="spo2-value">98</p>
+                <p class="font-medium text-gray-500">%</p>
+                 <div class="mt-4">
+                    <p class="text-lg font-medium" id="spo2-status">
+                        <span class="text-green-600">Status: Normal</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card: System Alerts -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg md:col-span-1 lg:col-span-2 flex flex-col">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">System Alerts</h2>
+                <ul id="alerts-list" class="space-y-3 h-48 overflow-y-auto flex-grow">
+                    <li class="text-gray-500">No alerts at this time.</li>
+                </ul>
+                <button id="summary-btn" class="mt-4 w-full p-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-md">
+                    ✨ Generate Daily Summary
+                </button>
+            </div>
+
+        </div> <!-- End Grid -->
+
+        <!-- Management & Tracking Section -->
+        <h2 class="text-2xl font-bold text-gray-800 mt-10 mb-6">Tracking & Management</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <!-- Card: Fitness Tracking (Steps) -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Today's Activity</h2>
+                <div class="flex items-baseline mb-4">
+                    <p class="text-5xl font-bold text-blue-600" id="activity-steps">4,520</p>
+                    <span class="ml-2 text-gray-500 font-medium">/ 8,000 steps</span>
+                </div>
+                <div class="flex items-baseline">
+                    <p class="text-3xl font-bold text-blue-600" id="activity-minutes">35</p>
+                    <span class="ml-2 text-gray-500 font-medium">/ 60 Active Minutes</span>
+                </div>
+            </div>
+
+            <!-- Card: Calorie Intake Tracker -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Calorie Intake</h2>
+                <div class="flex items-baseline mb-2">
+                    <p class="text-5xl font-bold text-gray-900" id="calorie-value">800</p>
+                    <span class="ml-2 text-gray-500 font-medium">/ 2,000 kcal</span>
+                </div>
+                <p class="text-lg font-medium mb-4" id="calorie-status">
+                    <span class="text-green-600">On Track</span>
+                </p>
+                <button class="w-full p-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                    Log Meal
+                </button>
+            </div>
+
+            <!-- Card: Medicine Tracker -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Medication Schedule</h2>
+                <ul id="meds-list" class="space-y-3 text-lg">
+                    <li>Loading...</li>
+                </ul>
+            </div>
+
+            <!-- Card: Health Plan (Consultation / Diet) -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg md:col-span-1 lg:col-span-3">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Health Plan & Consultation</h2>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1 p-4 bg-gray-50 rounded-lg border">
+                        <h3 class="font-semibold text-gray-800">Next Online Consultation</h3>
+                        <p class="text-gray-600">Dr. Jane Smith (Cardiology)</p>
+                        <p class="text-lg font-medium text-blue-700">Monday, Nov 18 @ 1:00 PM</p>
+                        <button class="mt-2 p-2 bg-green-600 text-white rounded-lg font-medium text-sm hover:bg-green-700 transition-colors">
+                            Start Consultation
+                        </button>
+                    </div>
+                    <div class="flex-1 p-4 bg-gray-50 rounded-lg border">
+                        <h3 class="font-semibold text-gray-800">AI-Powered Diet Plan</h3>
+                        <p class="text-gray-600">Your plan for today is ready.</p>
+                        <p class="text-lg font-medium text-blue-700">1,980 kcal target</p>
+                        <button id="ai-diet-btn" class="mt-2 p-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 transition-colors">
+                            ✨ View AI Diet Plan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- End Grid -->
+
+        <!-- Wearable Device Integration Section -->
+        <h2 class="text-2xl font-bold text-gray-800 mt-10 mb-6">Wearable Device Integration</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <!-- Card: Smartwatch Data (HRV, Readiness) -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Smartwatch Sync</h2>
+                <div class="mb-4">
+                    <p class="text-lg font-medium text-gray-600">Heart Rate Variability (HRV)</p>
+                    <p class="text-4xl font-bold text-blue-600" id="hrv-value">65 <span class="text-2xl font-medium text-gray-500">ms</span></p>
+                </div>
+                <div>
+                    <p class="text-lg font-medium text-gray-600">Readiness Score</p>
+                    <p class="text-4xl font-bold text-green-600" id="readiness-score">85<span class="text-2xl font-medium text-gray-500">%</span></p>
+                </div>
+            </div>
+
+            <!-- Card: Sleep Analysis -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg md:col-span-1 lg:col-span-2">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Sleep Analysis (Last Night)</h2>
+                <div class="flex flex-col md:flex-row justify-around items-center">
+                    <!-- Total Sleep -->
+                    <div class="text-center mb-4 md:mb-0">
+                        <p class="text-lg font-medium text-gray-600">Total Sleep</p>
+                        <p class="text-5xl font-bold text-blue-700" id="sleep-time">7.5 <span class="text-3xl font-medium text-gray-500">hr</span></p>
+                    </div>
+                    <!-- Sleep Stages -->
+                    <div class="space-y-2 text-lg">
+                        <p class="font-medium" id="sleep-deep">
+                            <span class="inline-block w-4 h-4 rounded-full bg-indigo-600 mr-2"></span>Deep: 1.5 hr
+                        </p>
+                        <p class="font-medium" id="sleep-light">
+                            <span class="inline-block w-4 h-4 rounded-full bg-blue-400 mr-2"></span>Light: 4.5 hr
+                        </p>
+                        <p class="font-medium" id="sleep-rem">
+                            <span class="inline-block w-4 h-4 rounded-full bg-purple-400 mr-2"></span>REM: 1.5 hr
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- End Grid -->
+
+    </div> <!-- End Container -->
+
+    <!-- AI Modal -->
+    <div id="ai-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <header class="flex justify-between items-center p-4 border-b">
+                <h2 id="modal-title" class="text-2xl font-bold text-gray-800">AI Generated Content</h2>
+                <button id="modal-close-btn" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+            </header>
+            <div id="modal-content" class="p-6 overflow-y-auto">
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get all UI elements
+            const heartRateVal = document.getElementById('heart-rate-value');
+            const heartRateStatus = document.getElementById('heart-rate-status');
+            const glucoseVal = document.getElementById('glucose-value');
+            const glucoseStatus = document.getElementById('glucose-status');
+            const bpVal = document.getElementById('bp-value');
+            const bpStatus = document.getElementById('bp-status');
+            const spo2Val = document.getElementById('spo2-value');
+            const spo2Status = document.getElementById('spo2-status');
+            const alertsList = document.getElementById('alerts-list');
+            const patientSelector = document.getElementById('patient-selector');
+            
+            // New management UI elements
+            const calorieVal = document.getElementById('calorie-value');
+            const calorieStatus = document.getElementById('calorie-status');
+            const medsList = document.getElementById('meds-list');
+            const activitySteps = document.getElementById('activity-steps');
+            const activityMinutes = document.getElementById('activity-minutes');
+
+            // New wearable UI elements
+            const hrvVal = document.getElementById('hrv-value');
+            const readinessScore = document.getElementById('readiness-score');
+            const sleepTime = document.getElementById('sleep-time');
+            const sleepDeep = document.getElementById('sleep-deep');
+            const sleepLight = document.getElementById('sleep-light');
+            const sleepRem = document.getElementById('sleep-rem');
+
+            // Modal elements
+            const aiModal = document.getElementById('ai-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalContent = document.getElementById('modal-content');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+
+            // AI feature buttons
+            const summaryBtn = document.getElementById('summary-btn');
+            const aiDietBtn = document.getElementById('ai-diet-btn');
+
+
+            // Canvas setup
+            const canvas = document.getElementById('ecg-canvas');
+            const ctx = canvas.getContext('2d');
+            let canvasTime = 0;
+            
+            // Data state
+            let patientData = {
+                p1: { heart: 72, glucose: 95, bp_s: 120, bp_d: 80, spo2: 98, calories: 800, steps: 4520, minutes: 35, hrv: 65, readiness: 85, sleep: 7.5, deep: 1.5, light: 4.5, rem: 1.5 },
+                p2: { heart: 85, glucose: 110, bp_s: 130, bp_d: 85, spo2: 97, calories: 1100, steps: 2100, minutes: 15, hrv: 50, readiness: 70, sleep: 6.2, deep: 1.0, light: 3.8, rem: 1.4 },
+                p3: { heart: 60, glucose: 80, bp_s: 110, bp_d: 70, spo2: 99, calories: 1200, steps: 6500, minutes: 45, hrv: 75, readiness: 92, sleep: 8.1, deep: 2.0, light: 4.6, rem: 1.5 }
+            };
+            
+            let currentPatient = 'p1';
+            let vitals = { ...patientData.p1 };
+
+            // --- Modal Functions ---
+            function showModal(title, content) {
+                modalTitle.textContent = title;
+                modalContent.innerHTML = content;
+                aiModal.classList.remove('hidden');
+            }
+
+            function hideModal() {
+                aiModal.classList.add('hidden');
+            }
+            
+            modalCloseBtn.addEventListener('click', hideModal);
+            aiModal.addEventListener('click', (e) => {
+                if (e.target === aiModal) {
+                    hideModal();
+                }
+            });
+
+
+            // --- Gemini API Call Functions ---
+            const apiKey = ""; // API key will be injected by the environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            /**
+             * Fetches data from Gemini API with exponential backoff retry.
+             */
+            async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        if (response.status === 429 && retries > 0) {
+                            // Throttled, wait and retry
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            return fetchWithRetry(url, options, retries - 1, delay * 2);
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    if (retries > 0) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        return fetchWithRetry(url, options, retries - 1, delay * 2);
+                    }
+                    console.error("Fetch failed after retries:", error);
+                    throw error;
+                }
+            }
+            
+            /**
+             * Formats raw text from Gemini into clean HTML.
+             */
+            function formatGeminiResponse(text) {
+                // Replace newlines with <br> tags
+                let formatted = text.replace(/\n/g, '<br>');
+                // Make lines starting with * into list items
+                formatted = formatted.replace(/<br>\*/g, '<br>•');
+                return formatted;
+            }
+
+            /**
+             * Generic function to call Gemini API.
+             */
+            async function callGemini(prompt, title) {
+                showModal(title, `
+                    <div class="flex flex-col items-center justify-center h-48">
+                        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p class="mt-4 text-gray-600">Generating response... Please wait.</p>
+                    </div>
+                `);
+
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                };
+
+                try {
+                    const result = await fetchWithRetry(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const candidate = result.candidates?.[0];
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        const text = candidate.content.parts[0].text;
+                        showModal(title, `<div class="prose max-w-none">${formatGeminiResponse(text)}</div>`);
+                    } else {
+                        throw new Error("Invalid response structure from API.");
+                    }
+                } catch (error) {
+                    console.error("Error calling Gemini API:", error);
+                    showModal("Error", `<p class="text-red-500">Sorry, an error occurred while generating the response. Please try again later.</p><p class="text-sm text-gray-500 mt-2">${error.message}</p>`);
+                }
+            }
+            
+            // --- AI Feature Event Listeners ---
+            summaryBtn.addEventListener('click', () => {
+                const patientName = patientSelector.options[patientSelector.selectedIndex].text;
+                const prompt = `
+                    Act as a health assistant. Provide a brief, one-paragraph daily health summary for a patient.
+                    Be encouraging but flag any potential concerns clearly.
+                    Do not use markdown formatting.
+                    
+                    Patient: ${patientName}
+                    Vitals:
+                    - Heart Rate: ${vitals.heart} BPM
+                    - Blood Glucose: ${vitals.glucose} mg/dL
+                    - Blood Pressure: ${vitals.bp_s}/${vitals.bp_d} mmHg
+                    - SpO2: ${vitals.spo2}%
+                    Wearable Data:
+                    - Sleep: ${vitals.sleep} hours
+                    - Readiness Score: ${vitals.readiness}%
+                    - HRV: ${vitals.hrv} ms
+                    - Steps: ${vitals.steps}
+                `;
+                callGemini(prompt, `Daily Summary for ${patientName}`);
+            });
+            
+            aiDietBtn.addEventListener('click', () => {
+                const patientName = patientSelector.options[patientSelector.selectedIndex].text;
+                const prompt = `
+                    Act as a nutritionist. Create a simple, one-day sample diet plan (Breakfast, Lunch, Dinner, and one Snack) for a patient.
+                    The plan should be balanced and target around 2000 kcal.
+                    Use bullet points for food items.
+                    
+                    Patient: ${patientName}
+                    Key Data:
+                    - Blood Glucose: ${vitals.glucose} mg/dL
+                    - Today's Calorie Intake so far: ${vitals.calories} kcal
+                `;
+                callGemini(prompt, `Sample Diet Plan for ${patientName}`);
+            });
+
+
+            // --- Alert Function ---
+            function addAlert(message, level = 'high') {
+                // Remove placeholder if it exists
+                if (alertsList.children.length === 1 && alertsList.children[0].textContent.includes('No alerts')) {
+                    alertsList.innerHTML = '';
+                }
+
+                const li = document.createElement('li');
+                const time = new Date().toLocaleTimeString();
+                let colorClass = 'text-yellow-600';
+                if (level === 'high') {
+                    colorClass = 'text-red-600 font-bold';
+                } else if (level === 'low') {
+                    colorClass = 'text-blue-600';
+                }
+                
+                li.className = `p-2 rounded-lg bg-gray-50 border border-gray-200 ${colorClass}`;
+                li.innerHTML = `<span class="font-medium">[${time}]</span> ${message}`;
+                alertsList.prepend(li);
+
+                // Limit number of alerts
+                if (alertsList.children.length > 5) {
+                    alertsList.lastChild.remove();
+                }
+            }
+            
+            // --- Simulation Functions ---
+
+            // Simulate Heart Rate
+            function simulateHeartRate() {
+                setInterval(() => {
+                    const fluctuation = Math.floor(Math.random() * 5) - 2; // -2 to +2
+                    vitals.heart += fluctuation;
+                    
+                    // Clamp values to a reasonable range
+                    if (vitals.heart < 40) vitals.heart = 40;
+                    if (vitals.heart > 180) vitals.heart = 180;
+
+                    heartRateVal.textContent = vitals.heart;
+
+                    if (vitals.heart > 100) {
+                        heartRateStatus.innerHTML = '<span class="text-red-600">Status: Tachycardia (High)</span>';
+                        if (Math.random() < 0.3) addAlert('High heart rate detected!', 'high');
+                    } else if (vitals.heart < 60) {
+                        heartRateStatus.innerHTML = '<span class="text-yellow-600">Status: Bradycardia (Low)</span>';
+                        if (Math.random() < 0.3) addAlert('Low heart rate detected.', 'warning');
+                    } else {
+                        heartRateStatus.innerHTML = '<span class="text-green-600">Status: Normal</span>';
+                    }
+                }, 1500);
+            }
+
+            // Simulate Blood Glucose
+            function simulateGlucose() {
+                setInterval(() => {
+                    const fluctuation = Math.floor(Math.random() * 3) - 1; // -1 to +1
+                    vitals.glucose += fluctuation;
+
+                    glucoseVal.textContent = vitals.glucose;
+                    
+                    if (vitals.glucose > 125) {
+                        glucoseStatus.innerHTML = '<span class="text-red-600">Status: High</span>';
+                        if (Math.random() < 0.1) addAlert('High blood glucose!', 'high');
+                    } else if (vitals.glucose < 70) {
+                        glucoseStatus.innerHTML = '<span class="text-yellow-600">Status: Low</span>';
+                        if (Math.random() < 0.1) addAlert('Low blood glucose.', 'warning');
+                    } else {
+                        glucoseStatus.innerHTML = '<span class="text-green-600">Status: Normal</span>';
+                    }
+                }, 5000); // Slower update
+            }
+
+            // Simulate Blood Pressure & SpO2
+            function simulateOtherVitals() {
+                setInterval(() => {
+                    vitals.bp_s += Math.floor(Math.random() * 5) - 2;
+                    vitals.bp_d += Math.floor(Math.random() * 3) - 1;
+                    vitals.spo2 += Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0;
+                    if (vitals.spo2 > 100) vitals.spo2 = 100;
+
+                    bpVal.textContent = `${vitals.bp_s}/${vitals.bp_d}`;
+                    spo2Val.textContent = vitals.spo2;
+
+                    // BP Status
+                    if (vitals.bp_s > 140 || vitals.bp_d > 90) {
+                        bpStatus.innerHTML = '<span class="text-red-600">Status: High</span>';
+                    } else if (vitals.bp_s < 90 || vitals.bp_d < 60) {
+                        bpStatus.innerHTML = '<span class="text-yellow-600">Status: Low</span>';
+                    } else {
+                        bpStatus.innerHTML = '<span class="text-green-600">Status: Normal</span>';
+                    }
+
+                    // SpO2 Status
+                    if (vitals.spo2 < 94) {
+                        spo2Status.innerHTML = '<span class="text-yellow-600">Status: Low</span>';
+                        if (Math.random() < 0.2) addAlert('Oxygen saturation low.', 'warning');
+                    } else {
+                        spo2Status.innerHTML = '<span class="text-green-600">Status: Normal</span>';
+                    }
+
+                }, 3500);
+            }
+
+            // --- New Simulation for Tracking ---
+            function simulateTracking() {
+                // Initial run to populate meds list
+                updateMeds(); 
+                
+                setInterval(() => {
+                    vitals.steps += Math.floor(Math.random() * 50);
+                    if (vitals.steps > 15000) vitals.steps = 15000; // Cap steps
+
+                    if (Math.random() < 0.1) {
+                         vitals.minutes += 1;
+                         if (vitals.minutes > 120) vitals.minutes = 120; // Cap minutes
+                    }
+                    if (Math.random() < 0.05) {
+                        vitals.calories += Math.floor(Math.random() * 100);
+                        if (vitals.calories > 3000) vitals.calories = 3000; // Cap calories
+                    }
+
+                    activitySteps.textContent = `${vitals.steps.toLocaleString()}`;
+                    activityMinutes.textContent = `${vitals.minutes}`;
+                    calorieVal.textContent = `${vitals.calories}`;
+
+                    if (vitals.calories > 2200) {
+                        calorieStatus.innerHTML = '<span class="text-red-600">Over Limit</span>';
+                    } else if (vitals.calories > 1800) {
+                        calorieStatus.innerHTML = '<span class="text-yellow-600">Nearing Limit</span>';
+                    } else {
+                        calorieStatus.innerHTML = '<span class="text-green-600">On Track</span>';
+                    }
+                    
+                    // Update meds list periodically
+                    updateMeds();
+
+                }, 7000); // Slower update for tracking
+            }
+
+            // --- New Simulation for Wearables ---
+            function simulateWearables() {
+                setInterval(() => {
+                    if (Math.random() < 0.2) { // Less frequent updates
+                        vitals.hrv += Math.floor(Math.random() * 3) - 1;
+                        vitals.readiness += Math.floor(Math.random() * 3) - 1;
+                        
+                        if (vitals.hrv < 20) vitals.hrv = 20;
+                        if (vitals.hrv > 120) vitals.hrv = 120;
+                        if (vitals.readiness < 50) vitals.readiness = 50;
+                        if (vitals.readiness > 100) vitals.readiness = 100;
+                    }
+                    
+                    hrvVal.innerHTML = `${vitals.hrv} <span class="text-2xl font-medium text-gray-500">ms</span>`;
+                    readinessScore.innerHTML = `${vitals.readiness}<span class="text-2xl font-medium text-gray-500">%</span>`;
+
+                    // Update readiness color
+                    if (vitals.readiness < 70) {
+                        readinessScore.className = "text-4xl font-bold text-yellow-500";
+                    } else {
+                        readinessScore.className = "text-4xl font-bold text-green-600";
+                    }
+
+                    // Sleep data generally doesn't change, so we just set it
+                    sleepTime.innerHTML = `${vitals.sleep.toFixed(1)} <span class="text-3xl font-medium text-gray-500">hr</span>`;
+                    sleepDeep.innerHTML = `<span class="inline-block w-4 h-4 rounded-full bg-indigo-600 mr-2"></span>Deep: ${vitals.deep.toFixed(1)} hr`;
+                    sleepLight.innerHTML = `<span class="inline-block w-4 h-4 rounded-full bg-blue-400 mr-2"></span>Light: ${vitals.light.toFixed(1)} hr`;
+                    sleepRem.innerHTML = `<span class="inline-block w-4 h-4 rounded-full bg-purple-400 mr-2"></span>REM: ${vitals.rem.toFixed(1)} hr`;
+
+                }, 10000); // Very slow update
+            }
+            
+            function updateMeds() {
+                const now = new Date();
+                const hour = now.getHours();
+                let medHtml = '';
+                
+                // Med 1
+                if (hour < 9) {
+                    medHtml += '<li>Lisinopril (10mg) - <span class="font-medium text-yellow-600">Due at 9:00 AM</span></li>';
+                } else {
+                    medHtml += '<li>Lisinopril (10mg) - <span class="font-medium text-green-600">Taken at 9:02 AM</span></li>';
+                }
+                
+                // Med 2 (for Patient B/C)
+                if (currentPatient !== 'p1') {
+                    medHtml += '<li>Metformin (500mg) - <span class="font-medium text-green-600">Taken at 8:30 AM</span></li>';
+                }
+                
+                // Med 3
+                if (hour < 20) {
+                    medHtml += '<li>Atorvastatin (20mg) - <span class="font-medium text-yellow-600">Due at 8:00 PM</span></li>';
+                } else {
+                    medHtml += '<li>Atorvastatin (20mg) - <span class="font-medium text-green-600">Taken at 8:01 PM</span></li>';
+                }
+                medsList.innerHTML = medHtml;
+            }
+
+            // --- ECG Canvas Animation ---
+            function resizeCanvas() {
+                canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+                canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            }
+
+            function drawECG() {
+                resizeCanvas(); // Ensure canvas is responsive
+                const width = canvas.offsetWidth;
+                const height = canvas.offsetHeight;
+                const baseLine = height / 2;
+
+                ctx.clearRect(0, 0, width, height);
+                ctx.strokeStyle = '#007aff'; // Health app blue
+                ctx.lineWidth = 2.5;
+
+                ctx.beginPath();
+                ctx.moveTo(0, baseLine);
+
+                for (let x = 0; x < width; x++) {
+                    // This creates a repeating "PQRST" wave pattern
+                    const timeInCycle = (x + canvasTime) % 200; // 200px per beat
+                    let y = baseLine;
+
+                    if (timeInCycle > 80 && timeInCycle < 90) { // P wave
+                        y -= (timeInCycle - 80) * 1;
+                    } else if (timeInCycle >= 90 && timeInCycle < 95) {
+                        y -= 10 - (timeInCycle - 90) * 2;
+                    } else if (timeInCycle >= 95 && timeInCycle < 97) { // Q
+                        y -= (timeInCycle - 95) * 20;
+                    } else if (timeInCycle >= 97 && timeInCycle < 100) { // R
+                        y = baseLine - 40 + (timeInCycle - 97) * 40;
+                    } else if (timeInCycle >= 100 && timeInCycle < 102) { // S
+                        y = baseLine + 80 - (timeInCycle - 100) * 50;
+                    } else if (timeInCycle >= 102 && timeInCycle < 105) {
+                        y = baseLine - 20 + (timeInCycle - 102) * 6.66;
+                    } else if (timeInCycle >= 120 && timeInCycle < 130) { // T wave
+                        y -= (timeInCycle - 120) * 1.5;
+                    } else if (timeInCycle >= 130 && timeInCycle < 140) {
+                        y = baseLine - 15 + (timeInCycle - 130) * 1.5;
+                    }
+                    
+                    // Add tiny bit of noise
+                    y += (Math.random() - 0.5) * 1.5;
+
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                // Speed of the line scrolling. Higher number = faster
+                canvasTime -= 3; 
+
+                requestAnimationFrame(drawECG);
+            }
+
+            // --- Patient Switching ---
+            function switchPatient(patientId) {
+                currentPatient = patientId;
+                vitals = { ...patientData[patientId] };
+                
+                // Clear alerts
+                alertsList.innerHTML = '<li class="text-gray-500">No alerts at this time.</li>';
+                
+                // Immediately update all values
+                heartRateVal.textContent = vitals.heart;
+                glucoseVal.textContent = vitals.glucose;
+                bpVal.textContent = `${vitals.bp_s}/${vitals.bp_d}`;
+                spo2Val.textContent = vitals.spo2;
+                calorieVal.textContent = `${vitals.calories}`;
+                activitySteps.textContent = `${vitals.steps.toLocaleString()}`;
+                activityMinutes.textContent = `${vitals.minutes}`;
+                
+                // Update wearable data
+                hrvVal.innerHTML = `${vitals.hrv} <span class="text-2xl font-medium text-gray-500">ms</span>`;
+                readinessScore.innerHTML = `${vitals.readiness}<span class="text-2xl font-medium text-gray-500">%</span>`;
+                sleepTime.innerHTML = `${vitals.sleep.toFixed(1)} <span class="text-3xl font-medium text-gray-500">hr</span>`;
+                sleepDeep.innerHTML = `<span class="inline-block w-4 h-4 rounded-full bg-indigo-600 mr-2"></span>Deep: ${vitals.deep.toFixed(1)} hr`;
+                sleepLight.innerHTML = `<span class="inline-block w-4 h-4 rounded-full bg-blue-400 mr-2"></span>Light: ${vitals.light.toFixed(1)} hr`;
+                sleepRem.innerHTML = `<span class="inline-block w-4 h-4 rounded-full bg-purple-400 mr-2"></span>REM: ${vitals.rem.toFixed(1)} hr`;
+
+
+                // Reset statuses (will be updated by simulation)
+                heartRateStatus.innerHTML = '<span class="text-green-600">Status: Normal</span>';
+                glucoseStatus.innerHTML = '<span class="text-green-600">Status: Normal</span>';
+                bpStatus.innerHTML = '<span class="text-green-600">Status: Normal</span>';
+                spo2Status.innerHTML = '<span class="text-green-600">Status: Normal</span>';
+                calorieStatus.innerHTML = '<span class="text-green-600">On Track</span>';
+                updateMeds(); // Update meds list for new patient
+            }
+
+            // --- Event Listeners ---
+            patientSelector.addEventListener('change', (e) => {
+                switchPatient(e.target.value);
+            });
+            window.addEventListener('resize', resizeCanvas);
+
+            // --- Start Simulations ---
+            switchPatient('p1'); // Load initial patient
+            simulateHeartRate();
+            simulateGlucose();
+            simulateOtherVitals();
+            simulateTracking(); // Start the new simulation
+            simulateWearables(); // Start wearable simulation
+            drawECG(); // Start the animation loop
+        });
+    </script>
+</body>
+</html>
